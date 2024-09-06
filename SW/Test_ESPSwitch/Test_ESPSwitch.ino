@@ -1,6 +1,14 @@
-//  ESP32-C3
-//  ESP-IDF  3.0.X
-//  OneWire  2.0.8
+/* Test code for LaskaKit ESPswitch
+ * 
+ * Board:   LaskaKit ESPswitch (ESP32C3 Dev Module) https://www.laskakit.cz/laskakit-esp32-devkit/
+ * 
+ * Library: by Adafruit         https://github.com/adafruit/Adafruit_NeoPixel
+ *          by Miles Burton     https://github.com/milesburton/Arduino-Temperature-Control-Library
+ *          by Paul Stoffregen  https://github.com/PaulStoffregen/OneWire
+ *
+ * Email:podpora@laskakit.cz
+ * Web:laskakit.cz
+ */
 
 #include <OneWire.h>
 #include <DallasTemperature.h>
