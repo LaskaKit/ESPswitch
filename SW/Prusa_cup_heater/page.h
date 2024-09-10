@@ -22,7 +22,7 @@ const char index_html[] PROGMEM = R"rawliteral(
             color: #ffffff;
         }
     </style>
-    <title>Smokehouse</title>
+    <title>LaskaKit Pruša Cup Heater</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 
