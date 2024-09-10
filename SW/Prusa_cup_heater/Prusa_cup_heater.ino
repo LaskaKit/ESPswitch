@@ -53,7 +53,7 @@ void DNS_setup()
 float get_temp()
 {
   dallas.requestTemperatures(); 
-  static float tempC = dallas.getTempCByIndex(0);
+  float tempC = dallas.getTempCByIndex(0);
 
   if (tempC != DEVICE_DISCONNECTED_C)
   {
@@ -64,9 +64,6 @@ float get_temp()
   {
     Serial.println("Error: Could not read temperature data");
   }
-
-  Serial.print(tempC);
-  Serial.println("ºC");
   return tempC;
 }
 
