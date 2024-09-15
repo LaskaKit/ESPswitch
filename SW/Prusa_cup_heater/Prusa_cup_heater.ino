@@ -1,4 +1,9 @@
 /* Test code for LaskaKit ESPswitch
+ * LED legend:
+ * - White: Not connected to WiFi
+ * - Green: Connected to WiFi and ready
+ * - Blue: Heater is off
+ * - Red: Heater is on
  * 
  * Board:   LaskaKit ESPswitch (ESP32C3 Dev Module) https://www.laskakit.cz/laskakit-esp32-devkit/
  * 
@@ -20,9 +25,7 @@
 #include <WiFiManager.h>
 #include "page.h"
 
-#define HOSTNAME "ESPswitch"
-#define TEMP_BOTTOM 55
-#define TEMP_TOP    65
+#define HOSTNAME "cupheater"
 
 #define DS18B20_PIN 3     // DS18B20 GPIO on Laskakit ESPswitch board
 #define LED_PIN     8     // LED GPIO on Laskakit ESPswitch board
@@ -37,6 +40,10 @@ OneWire oneWire(DS18B20_PIN);         // Setup a oneWire instance to communicate
 DallasTemperature dallas(&oneWire);   // Pass our oneWire reference to Dallas Temperature sensor 
 
 WebServer server(80);
+
+bool heater_state = false;
+float temp_bottom = 55;
+float temp_top = 65;
 
 void DNS_setup()
 {
@@ -54,13 +61,7 @@ float get_temp()
 {
   dallas.requestTemperatures(); 
   float tempC = dallas.getTempCByIndex(0);
-
-  if (tempC != DEVICE_DISCONNECTED_C)
-  {
-    Serial.print("Temperature is: ");
-    Serial.println(tempC);
-  }
-  else
+  if (tempC == DEVICE_DISCONNECTED_C)
   {
     Serial.println("Error: Could not read temperature data");
   }
@@ -69,18 +70,20 @@ float get_temp()
 
 void regulate_heater(float temp_bottom, float temp_top) {
   float temp = get_temp();
-  if (temp < temp_bottom) {
-    ledcWrite(CH3_PIN, 255);
-  } else if (temp > temp_top) {
+  if (temp > temp_top) {
     ledcWrite(CH3_PIN, 0);
+  } else if (temp < temp_bottom) {
+    ledcWrite(CH3_PIN, 255);
   }
 }
 
 void control_led() {
   if (ledcRead(CH3_PIN) > 0) {
+    // Red color to indicate that the heater is on
     pixels.setPixelColor(0, pixels.Color(255, 0, 0));
   } else {
-    pixels.setPixelColor(0, pixels.Color(0, 255, 0));
+    // Blue color to indicate that the heater is off
+    pixels.setPixelColor(0, pixels.Color(0, 0, 255));
   }
   pixels.show();
 }
@@ -114,6 +117,40 @@ void handle_temp_plate()
 	server.send(200, "text/plain", buff);
 }
 
+void handle_switch_on()
+{
+  heater_state = true;
+  server.send(200, "text/plain", "Switched on");
+}
+
+void handle_switch_off()
+{
+  heater_state = false;
+  server.send(200, "text/plain", "Switched off");
+}
+
+void handle_get_switch_status() {
+  char status[6] = {0};
+  strcpy(status, heater_state ? "true" : "false");
+  server.send(200, "text/plain", status);
+}
+
+void handle_set_temperature() {
+  if (server.hasArg("temp_bottom") && server.hasArg("temp_top")) {
+    temp_bottom = server.arg("temp_bottom").toFloat();
+    temp_top = server.arg("temp_top").toFloat();
+    server.send(200, "text/plain", "Temperature set");
+  } else {
+    server.send(400, "text/plain", "Invalid request");
+  }
+}
+
+void handle_get_set_values() {
+  char response[50];
+  sprintf(response, "temp_bottom=%.1f&temp_top=%.1f", temp_bottom, temp_top);
+  server.send(200, "text/plain", response);
+}
+
 void setup() {
   Serial.begin(115200);
 
@@ -125,15 +162,18 @@ void setup() {
   pixels.show();
 
   WiFiManager wm;
-  bool res = wm.autoConnect("ESPswitch");
+  bool res = wm.autoConnect(HOSTNAME);
   if (!res) {
     Serial.println("Failed to connect");
     ESP.restart();
   } else {
     Serial.println("Connected to WiFi!");
   }
-
   DNS_setup();
+
+  // Green color to indicate that the device is connected to WiFi and ready
+  pixels.setPixelColor(0, pixels.Color(0, 255, 0));
+  pixels.show();
 
   ledcAttach(CH3_PIN, 200, 8); // Attach channel 3 to the GPIO pin to control the heater
   
@@ -142,12 +182,17 @@ void setup() {
   server.on("/", handle_root);
 	server.onNotFound(handle_not_found);
 	server.on("/handle_temp_plate", handle_temp_plate);
+  server.on("/handle_switch_on", handle_switch_on);
+  server.on("/handle_switch_off", handle_switch_off);
+  server.on("/get_switch_status", handle_get_switch_status);
+  server.on("/set_temperature", HTTP_POST, handle_set_temperature);
+  server.on("/get_set_values", handle_get_set_values);
 	server.begin();
 	Serial.println("HTTP server started");
 }
 
 void loop() {
   server.handleClient();
-  regulate_heater(TEMP_BOTTOM, TEMP_TOP);
+  regulate_heater(temp_bottom, temp_top);
   control_led();
 }
