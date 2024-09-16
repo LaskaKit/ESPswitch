@@ -4,9 +4,9 @@
  * - Green: Connected to WiFi and ready
  * - Blue: Heater is off
  * - Red: Heater is on
- * 
+ *
  * Board:   LaskaKit ESPswitch (ESP32C3 Dev Module) https://www.laskakit.cz/laskakit-esp32-devkit/
- * 
+ *
  * Library: by Adafruit         https://github.com/adafruit/Adafruit_NeoPixel
  *          by Miles Burton     https://github.com/milesburton/Arduino-Temperature-Control-Library
  *          by Paul Stoffregen  https://github.com/PaulStoffregen/OneWire
@@ -27,17 +27,17 @@
 
 #define HOSTNAME "cupheater"
 
-#define DS18B20_PIN 3     // DS18B20 GPIO on Laskakit ESPswitch board
-#define LED_PIN     8     // LED GPIO on Laskakit ESPswitch board
-#define CH0_PIN     0     // Channel 0 GPIO on Laskakit ESPswitch board (not used in this example)
-#define CH1_PIN     1     // Channel 1 GPIO on Laskakit ESPswitch board (not used in this example)
-#define CH2_PIN     4     // Channel 2 GPIO on Laskakit ESPswitch board (not used in this example)
-#define CH3_PIN     5     // Channel 3 GPIO on Laskakit ESPswitch board
+#define DS18B20_PIN 3 // DS18B20 GPIO on Laskakit ESPswitch board
+#define LED_PIN 8     // LED GPIO on Laskakit ESPswitch board
+#define CH0_PIN 0     // Channel 0 GPIO on Laskakit ESPswitch board (not used in this example)
+#define CH1_PIN 1     // Channel 1 GPIO on Laskakit ESPswitch board (not used in this example)
+#define CH2_PIN 4     // Channel 2 GPIO on Laskakit ESPswitch board (not used in this example)
+#define CH3_PIN 5     // Channel 3 GPIO on Laskakit ESPswitch board
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(1, LED_PIN, NEO_GRB + NEO_KHZ800);
 
-OneWire oneWire(DS18B20_PIN);         // Setup a oneWire instance to communicate with any OneWire devices
-DallasTemperature dallas(&oneWire);   // Pass our oneWire reference to Dallas Temperature sensor 
+OneWire oneWire(DS18B20_PIN);       // Setup a oneWire instance to communicate with any OneWire devices
+DallasTemperature dallas(&oneWire); // Pass our oneWire reference to Dallas Temperature sensor
 
 WebServer server(80);
 
@@ -47,19 +47,19 @@ float temp_top = 65;
 
 void DNS_setup()
 {
-	if (MDNS.begin(HOSTNAME))
-	{
-		MDNS.addService("http", "tcp", 80);
-		Serial.println("MDNS responder started");
-		Serial.print("You can now connect to http://");
-		Serial.print(HOSTNAME);
-		Serial.println(".local");
-	}
+  if (MDNS.begin(HOSTNAME))
+  {
+    MDNS.addService("http", "tcp", 80);
+    Serial.println("MDNS responder started");
+    Serial.print("You can now connect to http://");
+    Serial.print(HOSTNAME);
+    Serial.println(".local");
+  }
 }
 
 float get_temp()
 {
-  dallas.requestTemperatures(); 
+  dallas.requestTemperatures();
   float tempC = dallas.getTempCByIndex(0);
   if (tempC == DEVICE_DISCONNECTED_C)
   {
@@ -68,25 +68,35 @@ float get_temp()
   return tempC;
 }
 
-void regulate_heater(float temp_bottom, float temp_top) {
+void regulate_heater(float temp_bottom, float temp_top)
+{
   if (heater_state)
   {
     float temp = get_temp();
-    if (temp > temp_top) {
+    if (temp > temp_top)
+    {
       ledcWrite(CH3_PIN, 0);
-    } else if (temp < temp_bottom) {
+    }
+    else if (temp < temp_bottom)
+    {
       ledcWrite(CH3_PIN, 255);
     }
-  } else {
+  }
+  else
+  {
     ledcWrite(CH3_PIN, 0);
   }
 }
 
-void control_led() {
-  if (ledcRead(CH3_PIN) > 0) {
+void control_led()
+{
+  if (ledcRead(CH3_PIN) > 0)
+  {
     // Red color to indicate that the heater is on
     pixels.setPixelColor(0, pixels.Color(255, 0, 0));
-  } else {
+  }
+  else
+  {
     // Blue color to indicate that the heater is off
     pixels.setPixelColor(0, pixels.Color(0, 0, 255));
   }
@@ -95,31 +105,31 @@ void control_led() {
 
 void handle_root()
 {
-	server.send_P(200, "text/html", index_html); // Send web page
+  server.send_P(200, "text/html", index_html); // Send web page
 }
 
 void handle_not_found()
 {
-	String message = "Error\n\n";
-	message += "URI: ";
-	message += server.uri();
-	message += "\nMethod: ";
-	message += (server.method() == HTTP_GET) ? "GET" : "POST";
-	message += "\nArguments: ";
-	message += server.args();
-	message += "\n";
-	for (uint8_t i = 0; i < server.args(); i++)
-	{
-		message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
-	}
-	server.send(404, "text/plain", message);
+  String message = "Error\n\n";
+  message += "URI: ";
+  message += server.uri();
+  message += "\nMethod: ";
+  message += (server.method() == HTTP_GET) ? "GET" : "POST";
+  message += "\nArguments: ";
+  message += server.args();
+  message += "\n";
+  for (uint8_t i = 0; i < server.args(); i++)
+  {
+    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+  }
+  server.send(404, "text/plain", message);
 }
 
 void handle_temp_plate()
 {
-	char buff[7] = {0};
-	sprintf(buff, "%0.2f ˚C", get_temp());
-	server.send(200, "text/plain", buff);
+  char buff[7] = {0};
+  sprintf(buff, "%0.2f ˚C", get_temp());
+  server.send(200, "text/plain", buff);
 }
 
 void handle_switch_on()
@@ -134,29 +144,36 @@ void handle_switch_off()
   server.send(200, "text/plain", "Switched off");
 }
 
-void handle_get_switch_status() {
+void handle_get_switch_status()
+{
   char status[6] = {0};
   strcpy(status, heater_state ? "true" : "false");
   server.send(200, "text/plain", status);
 }
 
-void handle_set_temperature() {
-  if (server.hasArg("temp_bottom") && server.hasArg("temp_top")) {
+void handle_set_temperature()
+{
+  if (server.hasArg("temp_bottom") && server.hasArg("temp_top"))
+  {
     temp_bottom = server.arg("temp_bottom").toFloat();
     temp_top = server.arg("temp_top").toFloat();
     server.send(200, "text/plain", "Temperature set");
-  } else {
+  }
+  else
+  {
     server.send(400, "text/plain", "Invalid request");
   }
 }
 
-void handle_get_set_values() {
+void handle_get_set_values()
+{
   char response[50];
   sprintf(response, "temp_bottom=%.1f&temp_top=%.1f", temp_bottom, temp_top);
   server.send(200, "text/plain", response);
 }
 
-void setup() {
+void setup()
+{
   Serial.begin(115200);
 
   pixels.begin();
@@ -168,10 +185,13 @@ void setup() {
 
   WiFiManager wm;
   bool res = wm.autoConnect(HOSTNAME);
-  if (!res) {
+  if (!res)
+  {
     Serial.println("Failed to connect");
     ESP.restart();
-  } else {
+  }
+  else
+  {
     Serial.println("Connected to WiFi!");
   }
   DNS_setup();
@@ -181,22 +201,23 @@ void setup() {
   pixels.show();
 
   ledcAttach(CH3_PIN, 200, 8); // Attach channel 3 to the GPIO pin to control the heater
-  
-  dallas.begin();  // Start the DS18B20 sensor
+
+  dallas.begin(); // Start the DS18B20 sensor
 
   server.on("/", handle_root);
-	server.onNotFound(handle_not_found);
-	server.on("/handle_temp_plate", handle_temp_plate);
+  server.onNotFound(handle_not_found);
+  server.on("/handle_temp_plate", handle_temp_plate);
   server.on("/handle_switch_on", handle_switch_on);
   server.on("/handle_switch_off", handle_switch_off);
   server.on("/get_switch_status", handle_get_switch_status);
   server.on("/set_temperature", HTTP_POST, handle_set_temperature);
   server.on("/get_set_values", handle_get_set_values);
-	server.begin();
-	Serial.println("HTTP server started");
+  server.begin();
+  Serial.println("HTTP server started");
 }
 
-void loop() {
+void loop()
+{
   server.handleClient();
   regulate_heater(temp_bottom, temp_top);
   control_led();
