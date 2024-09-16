@@ -69,11 +69,16 @@ float get_temp()
 }
 
 void regulate_heater(float temp_bottom, float temp_top) {
-  float temp = get_temp();
-  if (temp > temp_top) {
+  if (heater_state)
+  {
+    float temp = get_temp();
+    if (temp > temp_top) {
+      ledcWrite(CH3_PIN, 0);
+    } else if (temp < temp_bottom) {
+      ledcWrite(CH3_PIN, 255);
+    }
+  } else {
     ledcWrite(CH3_PIN, 0);
-  } else if (temp < temp_bottom) {
-    ledcWrite(CH3_PIN, 255);
   }
 }
 
