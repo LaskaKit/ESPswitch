@@ -26,13 +26,19 @@
 #include "page.h"
 
 #define HOSTNAME "cupheater"
+/* Offset to stop the heater before reaching the set temperature,
+*  this is to prevent the heater from overshooting the set temperature
+*/
+#define TEMP_OFFSET_TOP 5.0
 
-#define DS18B20_PIN 3 // DS18B20 GPIO on Laskakit ESPswitch board
+#define DS18B20_PIN 10 // DS18B20 GPIO on Laskakit ESPswitch board
 #define LED_PIN 8     // LED GPIO on Laskakit ESPswitch board
 #define CH0_PIN 0     // Channel 0 GPIO on Laskakit ESPswitch board (not used in this example)
 #define CH1_PIN 1     // Channel 1 GPIO on Laskakit ESPswitch board (not used in this example)
 #define CH2_PIN 4     // Channel 2 GPIO on Laskakit ESPswitch board (not used in this example)
 #define CH3_PIN 5     // Channel 3 GPIO on Laskakit ESPswitch board
+
+
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(1, LED_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -73,7 +79,7 @@ void regulate_heater(float temp_bottom, float temp_top)
   if (heater_state)
   {
     float temp = get_temp();
-    if (temp > temp_top)
+    if (temp > temp_top - TEMP_OFFSET_TOP)
     {
       ledcWrite(CH3_PIN, 0);
     }
@@ -175,6 +181,8 @@ void handle_get_set_values()
 void setup()
 {
   Serial.begin(115200);
+  pinMode(3, OUTPUT);
+  digitalWrite(3, HIGH);
 
   pixels.begin();
   pixels.setBrightness(10);
@@ -221,4 +229,12 @@ void loop()
   server.handleClient();
   regulate_heater(temp_bottom, temp_top);
   control_led();
+  Serial.print("Heater state: ");
+  Serial.println(heater_state);
+  Serial.print("Min temperature: ");
+  Serial.println(temp_bottom);
+  Serial.print("Max temperature: ");
+  Serial.println(temp_top);
+  Serial.print("PWM value: ");
+  Serial.println(ledcRead(CH3_PIN));
 }
