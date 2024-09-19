@@ -39,9 +39,9 @@
 #define DELAYTIME 1000
 #define i2c_Address 0x3c
 
-#define PIN_SCL 18      // Clock pin on LaskaKit ESPswitch board  
-#define PIN_SDA 19      // Data pin on LaskaKit ESPswitch board
-#define DS18B20_PIN 3  // DS18B20 GPIO on Laskakit ESPswitch board
+#define PIN_SCL 19      // Clock pin on LaskaKit ESPswitch board  
+#define PIN_SDA 18      // Data pin on LaskaKit ESPswitch board
+#define DS18B20_PIN 3   // DS18B20 GPIO on Laskakit ESPswitch board
 #define LED_PIN 8       // LED GPIO on Laskakit ESPswitch board
 #define CH0_PIN 0       // Channel 0 GPIO on Laskakit ESPswitch board (not used in this example)
 #define CH1_PIN 1       // Channel 1 GPIO on Laskakit ESPswitch board (not used in this example)
@@ -121,9 +121,12 @@ void control_led()
 void control_display()
 {
   display.setCursor(0,0);
-  display.println(String("Teplota: " + String(get_temp())));
+  display.println((String)"Teplota: ");
+  display.println(String(get_temp()));
+  display.println((String)"testtesttesttesttestt");
+  display.println((String)"testtesttesttesttestt");
   display.display(); 
-  delay(100);
+  delay(500);
   display.clearDisplay();
 }
 
@@ -199,19 +202,13 @@ void handle_get_set_values()
 void setup()
 {
   Serial.begin(115200);
-
   Wire.begin(PIN_SDA, PIN_SCL);
 
-    // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if(!display.begin(SSD1306_SWITCHCAPVCC, i2c_Address)) {
     Serial.println(F("SSD1306 allocation failed"));
     for(;;); // Don't proceed, loop forever
   }
-
-  // Show initial display buffer contents on the screen --
-  // the library initializes this with an Adafruit splash screen.
-  display.display();
-  delay(2000); // Pause for 2 seconds
 
   display.clearDisplay(); 
   display.setTextColor(SSD1306_WHITE);        // Draw white text
@@ -262,7 +259,8 @@ void loop()
   server.handleClient();
   regulate_heater(temp_bottom, temp_top);
   control_led();
-  
+  control_display();
+
   Serial.print("Heater state: ");
   Serial.println(heater_state);
   Serial.print("Min temperature: ");
