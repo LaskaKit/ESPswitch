@@ -7,7 +7,9 @@
  *
  * Board:   LaskaKit ESPswitch (ESP32C3 Dev Module) https://www.laskakit.cz/laskakit-esp32-devkit/
  *
- * Library: by Adafruit         https://github.com/adafruit/Adafruit_NeoPixel
+ * Library: by Adafruit         https://github.com/adafruit/Adafruit_NeoPixel 
+ *                              https://github.com/adafruit/Adafruit-GFX-Library
+ *                              https://github.com/adafruit/Adafruit_SSD1306
  *          by Miles Burton     https://github.com/milesburton/Arduino-Temperature-Control-Library
  *          by Paul Stoffregen  https://github.com/PaulStoffregen/OneWire
  *          by tzapu            https://github.com/tzapu/WiFiManager
@@ -16,31 +18,38 @@
  * Web:laskakit.cz
  */
 
+#include <SPI.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <Adafruit_NeoPixel.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 #include <WiFiManager.h>
 #include "page.h"
 
 #define HOSTNAME "cupheater"
+
 /* Offset to stop the heater before reaching the set temperature,
 *  this is to prevent the heater from overshooting the set temperature
 */
 #define TEMP_OFFSET_TOP 5.0
+#define DELAYTIME 1000
+#define i2c_Address 0x3c
 
-#define DS18B20_PIN 10 // DS18B20 GPIO on Laskakit ESPswitch board
-#define LED_PIN 8     // LED GPIO on Laskakit ESPswitch board
-#define CH0_PIN 0     // Channel 0 GPIO on Laskakit ESPswitch board (not used in this example)
-#define CH1_PIN 1     // Channel 1 GPIO on Laskakit ESPswitch board (not used in this example)
-#define CH2_PIN 4     // Channel 2 GPIO on Laskakit ESPswitch board (not used in this example)
-#define CH3_PIN 5     // Channel 3 GPIO on Laskakit ESPswitch board
-
-
+#define PIN_SCL 18      // Clock pin on LaskaKit ESPswitch board  
+#define PIN_SDA 19      // Data pin on LaskaKit ESPswitch board
+#define DS18B20_PIN 3  // DS18B20 GPIO on Laskakit ESPswitch board
+#define LED_PIN 8       // LED GPIO on Laskakit ESPswitch board
+#define CH0_PIN 0       // Channel 0 GPIO on Laskakit ESPswitch board (not used in this example)
+#define CH1_PIN 1       // Channel 1 GPIO on Laskakit ESPswitch board (not used in this example)
+#define CH2_PIN 4       // Channel 2 GPIO on Laskakit ESPswitch board (not used in this example)
+#define CH3_PIN 5       // Channel 3 GPIO on Laskakit ESPswitch board
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(1, LED_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_SSD1306 display(128, 32, &Wire, -1);
 
 OneWire oneWire(DS18B20_PIN);       // Setup a oneWire instance to communicate with any OneWire devices
 DallasTemperature dallas(&oneWire); // Pass our oneWire reference to Dallas Temperature sensor
@@ -107,6 +116,15 @@ void control_led()
     pixels.setPixelColor(0, pixels.Color(0, 0, 255));
   }
   pixels.show();
+}
+
+void control_display()
+{
+  display.setCursor(0,0);
+  display.println(String("Teplota: " + String(get_temp())));
+  display.display(); 
+  delay(100);
+  display.clearDisplay();
 }
 
 void handle_root()
@@ -181,8 +199,23 @@ void handle_get_set_values()
 void setup()
 {
   Serial.begin(115200);
-  pinMode(3, OUTPUT);
-  digitalWrite(3, HIGH);
+
+  Wire.begin(PIN_SDA, PIN_SCL);
+
+    // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if(!display.begin(SSD1306_SWITCHCAPVCC, i2c_Address)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;); // Don't proceed, loop forever
+  }
+
+  // Show initial display buffer contents on the screen --
+  // the library initializes this with an Adafruit splash screen.
+  display.display();
+  delay(2000); // Pause for 2 seconds
+
+  display.clearDisplay(); 
+  display.setTextColor(SSD1306_WHITE);        // Draw white text
+  display.setTextSize(1); 
 
   pixels.begin();
   pixels.setBrightness(10);
@@ -229,6 +262,7 @@ void loop()
   server.handleClient();
   regulate_heater(temp_bottom, temp_top);
   control_led();
+  
   Serial.print("Heater state: ");
   Serial.println(heater_state);
   Serial.print("Min temperature: ");
