@@ -123,8 +123,6 @@ void control_display()
   display.setCursor(0,0);
   display.println((String)"Teplota: ");
   display.println(String(get_temp()));
-  display.println((String)"testtesttesttesttestt");
-  display.println((String)"testtesttesttesttestt");
   display.display(); 
   delay(500);
   display.clearDisplay();
