@@ -32,11 +32,7 @@
 
 #define HOSTNAME "cupheater"
 
-/* Offset to stop the heater before reaching the set temperature,
-*  this is to prevent the heater from overshooting the set temperature
-*/
-#define TEMP_OFFSET_TOP 5.0
-#define DELAYTIME 1000
+#define DELAYTIME 1000  // Delay in ms between temperature readings and display updates
 #define i2c_Address 0x3c
 
 #define PIN_SCL 19      // Clock pin on LaskaKit ESPswitch board  
@@ -59,6 +55,10 @@ WebServer server(80);
 bool heater_state = false;
 float temp_bottom = 55;
 float temp_top = 65;
+/* Offset to stop the heater before reaching the set temperature,
+*  this is to prevent the heater from overshooting the set temperature
+*/
+#define TEMP_OFFSET_TOP 5.0
 
 void DNS_setup()
 {
@@ -72,15 +72,36 @@ void DNS_setup()
   }
 }
 
+// float get_temp()
+// {
+//   dallas.requestTemperatures();
+//   float tempC = dallas.getTempCByIndex(0);
+//   if (tempC == DEVICE_DISCONNECTED_C)
+//   {
+//     Serial.println("Error: Could not read temperature data");
+//   }
+//   return tempC;
+// }
+
 float get_temp()
 {
-  dallas.requestTemperatures();
-  float tempC = dallas.getTempCByIndex(0);
-  if (tempC == DEVICE_DISCONNECTED_C)
+  static uint32_t lastTempCheck = 0;
+  static float lastTemp = DEVICE_DISCONNECTED_C;
+  
+  uint32_t currentMillis = millis();
+  
+  if (currentMillis - lastTempCheck >= DELAYTIME)
   {
-    Serial.println("Error: Could not read temperature data");
+    lastTempCheck = currentMillis;
+    dallas.requestTemperatures();
+    lastTemp = dallas.getTempCByIndex(0);
+    if (lastTemp == DEVICE_DISCONNECTED_C)
+    {
+      Serial.println("Error: Could not read temperature data");
+    }
   }
-  return tempC;
+  
+  return lastTemp;
 }
 
 void regulate_heater(float temp_bottom, float temp_top)
@@ -120,12 +141,19 @@ void control_led()
 
 void control_display()
 {
-  display.setCursor(0,0);
-  display.println((String)"Teplota: ");
-  display.println(String(get_temp()));
-  display.display(); 
-  delay(500);
-  display.clearDisplay();
+  static uint32_t lastUpdate = 0;
+
+  uint32_t currentMillis = millis();
+  
+  if (currentMillis - lastUpdate >= DELAYTIME) {
+    lastUpdate = currentMillis;
+
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println((String)"Teplota: ");
+    display.println(String(get_temp()));
+    display.display();
+  }
 }
 
 void handle_root()
