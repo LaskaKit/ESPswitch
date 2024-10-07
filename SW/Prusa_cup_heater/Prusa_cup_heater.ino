@@ -149,9 +149,11 @@ void control_display()
     lastUpdate = currentMillis;
 
     display.clearDisplay();
-    display.setCursor(0, 0);
-    display.println((String)"Teplota: ");
-    display.println(String(get_temp()));
+
+    display.setCursor(5, 5);
+    display.setTextSize(3); 
+    display.println(String(get_temp()) + "C");
+
     display.display();
   }
 }
